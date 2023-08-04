@@ -1,0 +1,186 @@
+BANK TRANSACTION WINDOW SUBFILE SFLCSRRN
+
+ Columns . . . :    6  76            Edit                      TEN22LIB/TRNGSRC 
+ SEU==>                                                                  TRAN1R 
+ FMT *   *. 1 ...+... 2 ...+... 3 ...+... 4 ...+... 5 ...+... 6 ...+... 7 ...+. 
+        *************** Beginning of data ************************************* 
+0001.00 F* INSERT BANK TRANSACTION AND UPDATE MASTER BALANCE                    
+0001.01 F* BASED ON CR/DR                                                       
+0001.02 F* PGM USES WDWSFL TO SELECT A/C NO FROM LIST                           
+0001.03 F* USER INPUT '1' ON OPT                                                
+0001.04 F* PGM READS SFL RECORD THAT WAS CHANGED                                
+0002.00 FBANKMAST  UF   E           K DISK                                      
+0003.00 FBANKTRAN  O    E           K DISK                                      
+0004.00 FTRAN1D    CF   E             WORKSTN SFILE(MSTSFL:RRN)                 
+0005.00 DRRN              S              3P 0 INZ(*ZEROS)                       
+0006.00 DNEWBAL           S             12P 2 INZ(*ZEROS)                       
+0007.00 C                   EXSR      FILLSFL                                   
+0007.01 C                   CLEAR                   TRNENT                      
+0008.00 C                   DOW       NOT *IN03                                 
+0009.00 C                   WRITE     HEADER                                    
+0010.00 C                   WRITE     FOOTER                                    
+0011.00 C                   EXFMT     TRNENT 
+0012.00 C   03              LEAVE                             
+0013.00 C   01              EXSR      SHOWSFL                 
+0014.00 C     ACNO          CHAIN     MSTREC                  
+0015.00 C                   IF        NOT %FOUND              
+0016.00 C                   EVAL      MSG='INVALID A/C NO.'   
+0017.00 C                   ITER                              
+0018.00 C                   ENDIF                             
+0019.00 C                   IF        TRNTYPE='CR'            
+0020.00 C                   EVAL      NEWBAL=BALANCE+TRNAMT   
+0021.00 C                   ENDIF                                        
+0022.00 C                   IF        TRNTYPE='DR'                       
+0023.00 C                   EVAL      NEWBAL=BALANCE-TRNAMT              
+0024.00 C                   ENDIF                                        
+0025.00 C                   IF        *IN04                              
+0026.00 C                   IF        TRNTYPE='DR' AND NEWBAL<0          
+0027.00 C                   EVAL      MSG='INSUFFICIENT BALANCE IN A/C'  
+0027.01 C                   ITER                                         
+0028.00 C                   ENDIF  
+0029.00 C                   EVAL      BALANCE=NEWBAL              
+0030.00 C                   WRITE     TRNREC                      
+0031.00 C                   UPDATE    MSTREC                      
+0032.00 C                   CLEAR                   TRNENT        
+0033.00 C                   ENDIF                                 
+0034.00 C                   IF        *IN12                       
+0035.00 C                   CLEAR                   TRNENT        
+0036.00 C                   ENDIF                                 
+0037.00 C                   ENDDO 
+0038.00 C                   EVAL      *INLR=*ON       
+0039.00 C     FILLSFL       BEGSR                     
+0040.00 C                   EVAL      *IN73=*ON       
+0041.00 C                   WRITE     MSTCTL          
+0042.00 C                   EVAL      RRN=0           
+0043.00 C     *LOVAL        SETLL     MSTREC          
+0044.00 C                   READ      MSTREC          
+0045.00 C                   DOW       NOT %EOF        
+0046.00 C                   EVAL      OPT=*BLANK 
+0047.00 C                   EVAL      RRN+=1                     
+0048.00 C                   WRITE     MSTSFL                     
+0049.00 C                   READ      MSTREC                     
+0050.00 C                   ENDDO                                
+0051.00 C                   MOVEA     '010'         *IN(71)      
+0052.00 C                   IF        RRN>0                      
+0053.00 C                   MOVEA     '110'         *IN(71)      
+0054.00 C                   ENDIF                                
+0055.00 C                   ENDSR 
+0056.00 C     SHOWSFL       BEGSR                                               
+0057.00 C                   EXFMT     MSTCTL                                    
+0057.01 C     CRRN          CHAIN     MSTSFL                                    
+0063.00 C                   ENDSR                                               
+        ****************** End of data **************************************** 
+                                                                                
+2.RUNTIMER PROGRAM USING XFOOT
+
+ Columns . . . :    6  76            Edit                      TEN22LIB/TRNGSRC 
+ SEU==>                                                                RUNTIMER 
+ FMT D  DName+++++++++++ETDsFrom+++To/L+++IDc.Keywords+++++++++++++++++++++++++ 
+        *************** Beginning of data ************************************* 
+0002.00 DNUMARY           S              3P 0 DIM(100)                          
+0003.00 DSUM              S              5P 0 INZ(0)                            
+0004.00 C     1             DO        100           X                 3 0       
+0005.00 C                   EVAL      NUMARY(X)=X                               
+0006.00 C                   ENDDO                                               
+0007.00 C     NUMARY(85)    DSPLY                                               
+0008.00 C                   EVAL      SUM=%XFOOT(NUMARY)                        
+0009.00 C     SUM           DSPLY                                               
+0010.00 C                   EVAL      *INLR=*ON                                 
+        ****************** End of data **************************************** 
+3.RECORD NAVIGATION USING SETLL,READP,READE
+
+ Columns . . . :    6  76            Edit                      TEN22LIB/TRNGSRC 
+ SEU==>                                                              NAVIGATE1R 
+ FMT *   *. 1 ...+... 2 ...+... 3 ...+... 4 ...+... 5 ...+... 6 ...+... 7 ...+. 
+        *************** Beginning of data ************************************* 
+0001.00                                                                         
+0001.01 F* USER DEFINED DATE FORMAT LIKE DD-MM-YYYY                             
+0001.02 F* USING %SUBDT,COMPILE TIME ARRAY AND CONCATINATE                      
+0002.00 FEMP1      UF   E           K DISK                                      
+0003.00 FNAVIGATE1DCF   E             WORKSTN                                   
+0003.01 DMSGARY           S             40A   CTDATA DIM(4) PERRCD(1)           
+0003.02 DMTHNM            S              3A   CTDATA DIM(12) PERRCD(6)          
+0004.00 DM1               C                   CONST('ALREADY AT TOP')           
+0005.00 DM2               C                   CONST('ALREADY AT BOTTOM')        
+0006.00 DM3               C                   CONST('N0 SUCH EMP-ID')           
+0007.00 DM4               C                   CONST('RECORD HAS BEEN DELETED')  
+0008.00 C     *LOVAL        SETLL     EMPREC                                    
+0009.00 C                   READ      EMPREC                                    
+0010.00 C                   DOW       NOT *IN03                                 
+0011.00 C                   WRITE     HEADER                                    
+0012.00 C                   WRITE     FOOTER  
+0012.03 C                             %CHAR(%SUBDT(DOJ:*Y))                    
+0013.00 C                   EXFMT     NAVSCR                                   
+0014.00 C   03              LEAVE                                              
+0015.00 C* SELECT BLOCK MAKES SWITCH CASES IN RPG..EACH WHEN DEFINES 1 CASE    
+0016.00 C                   SELECT                                             
+0017.00 C                   WHEN      *IN04                                    
+0018.00 C*GOTO TOP OF FILE                                                     
+0019.00 C     *LOVAL        SETLL     EMPREC                                   
+0020.00 C                   READ      EMPREC                                   
+0021.00 C                   WHEN      *IN05                                    
+0022.00 C* GOTO BOTTOM OF FILE                                                 
+0023.00 C     *HIVAL        SETLL     EMPREC                                   
+0024.00 C                   READP     EMPREC                                   
+0025.00 C                   WHEN      *IN06                                    
+0026.00 C* GOTO PREV REC                                                       
+0027.00 C                   READP     EMPREC  
+0028.00 C                   IF        %EOF               
+0029.00 C     *LOVAL        SETLL     EMPREC             
+0030.00 C                   READ      EMPREC             
+0031.00 C                   EVAL      MSG=MSGARY(1)      
+0032.00 C                   ENDIF                        
+0033.00 C                   WHEN      *IN07              
+0034.00 C                   READ      EMPREC             
+0035.00 C                   IF        %EOF               
+0036.00 C     *HIVAL        SETLL     EMPREC 
+0037.00 C                   READP     EMPREC                    
+0038.00 C                   EVAL      MSG=MSGARY(2)             
+0039.00 C                   ENDIF                               
+0040.00 C                   WHEN      *IN08                     
+0041.00 C* SEARCH..DISPLAY WINDOW ACCEPT KEY VALUE AND SEARCH   
+0042.00 C                   EXFMT     EMPIDQRY                  
+0043.00 C     QEMPID        CHAIN     EMPREC                    
+0044.00 C                   IF        NOT %FOUND                
+0045.00 C                   EVAL      MSG=MSGARY(3) 
+0047.00      C                   WHEN      *IN09      
+0048.00      C                   DELETE    EMPREC     
+0049.00      C                   READ      EMPREC     
+0050.00      C                   ENDSL                
+0051.00      C                   ENDDO                
+0052.00      C                   EVAL      *INLR=*ON  
+0053.00 ** CTDATA                                     
+0054.00 YOU ARE ALREADY AT TOP  
+0055.00 YOU ARE ALREADY AT BOTTOM                                               
+0056.00 NO SUCH EMPID                                                           
+0057.00 RECORD HAS BEEN DELTED                                                  
+0058.00 **                                                                      
+0059.00 JANFEBMARAPRMAYJUN                                                      
+0060.00 JULAUGSEPOCTNOVDEC                                                      
+        ****************** End of data **************************************** 
+                                                                                
+4. REPORT LAYOUT UTILITY FIRST PROGRAM( SALARY REPORT)
+ Columns . . . :    6  76            Edit                      TEN22LIB/TRNGSRC 
+ SEU==>                                                               SALREPOPR 
+ FMT *   *. 1 ...+... 2 ...+... 3 ...+... 4 ...+... 5 ...+... 6 ...+... 7 ...+. 
+        *************** Beginning of data ************************************* 
+0001.00                                                                         
+0002.00 FEMP1      IF   E           K DISK                                      
+0003.00 FSALREPOP  O    E             PRINTER OFLIND(*IN95)                     
+0004.00 C                   WRITE     HEAD1                                     
+0005.00 C                   WRITE     HEAD2                                     
+0006.00 C     *LOVAL        SETLL     EMPREC                                    
+0007.00 C                   READ      EMPREC                                    
+0008.00 C                   DOW       NOT %EOF                                  
+0009.00 C                   EVAL      TOTSAL=TOTSAL+SALARY                      
+0010.00 C                   WRITE     DETAIL                                    
+0011.00 C   95              WRITE     HEAD1                                     
+0012.00 C   95              WRITE     HEAD2                                     
+0012.01 C   95              EVAL      *IN95=*OFF                                
+0012.02 C                   READ      EMPREC                                    
+0013.00 C                   ENDDO                                               
+0014.00 C                   WRITE     GRAND
+0015.00 C                   EVAL      *INLR=*ON                                
+        ****************** End of data ****************************************                                                                                                                                                     
+                                                                                                                                                                                                                                       
+                                                                      
